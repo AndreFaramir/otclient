@@ -161,15 +161,19 @@ protected:
     virtual void onGeometryChange(const Rect& oldRect, const Rect& newRect);
     virtual void onFocusChange(bool focused, Fw::FocusReason reason);
     virtual void onHoverChange(bool hovered);
-    virtual bool onKeyPress(uchar keyCode, std::string keyText, int keyboardModifiers);
-    virtual bool onKeyRelease(uchar keyCode, std::string keyText, int keyboardModifiers);
+    virtual bool onKeyText(const std::string& keyText);
+    virtual bool onKeyDown(uchar keyCode, int keyboardModifiers);
+    virtual bool onKeyPress(uchar keyCode, int keyboardModifiers, bool wouldFilter);
+    virtual bool onKeyUp(uchar keyCode, int keyboardModifiers);
     virtual bool onMousePress(const Point& mousePos, Fw::MouseButton button);
     virtual void onMouseRelease(const Point& mousePos, Fw::MouseButton button);
     virtual bool onMouseMove(const Point& mousePos, const Point& mouseMoved);
     virtual bool onMouseWheel(const Point& mousePos, Fw::MouseWheelDirection direction);
 
-    bool propagateOnKeyPress(uchar keyCode, std::string keyText, int keyboardModifiers);
-    bool propagateOnKeyRelease(uchar keyCode, std::string keyText, int keyboardModifiers);
+    bool propagateOnKeyText(const std::string& keyText);
+    bool propagateOnKeyDown(uchar keyCode, int keyboardModifiers);
+    bool propagateOnKeyPress(uchar keyCode, int keyboardModifiers, bool wouldFilter);
+    bool propagateOnKeyUp(uchar keyCode, int keyboardModifiers);
     bool propagateOnMousePress(const Point& mousePos, Fw::MouseButton button);
     void propagateOnMouseRelease(const Point& mousePos, Fw::MouseButton button);
     bool propagateOnMouseMove(const Point& mousePos, const Point& mouseMoved);
@@ -403,6 +407,10 @@ private:
     void initText();
     void parseTextStyle(const OTMLNodePtr& styleNode);
 
+    Boolean<true> m_textMustRecache;
+    FrameBufferPtr m_textFramebuffer;
+    Size m_textCachedBoxSize;
+
 protected:
     void drawText(const Rect& screenCoords);
 
@@ -419,8 +427,8 @@ public:
     void clearText() { setText(""); }
 
     void setText(const std::string& text);
-    void setTextAlign(Fw::AlignmentFlag align) { m_textAlign = align; }
-    void setTextOffset(const Point& offset) { m_textOffset = offset; }
+    void setTextAlign(Fw::AlignmentFlag align) { m_textAlign = align; m_textMustRecache = true; }
+    void setTextOffset(const Point& offset) { m_textOffset = offset; m_textMustRecache = true; }
     void setFont(const std::string& fontName);
 
     std::string getText() { return m_text; }

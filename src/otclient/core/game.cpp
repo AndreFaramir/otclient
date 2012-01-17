@@ -36,9 +36,7 @@ void Game::loginWorld(const std::string& account, const std::string& password, c
 {
     m_online = false;
     m_dead = false;
-    m_walkFeedback = true;
     m_selectedThing = nullptr;
-    m_walkPing = 0;
     m_protocolGame = ProtocolGamePtr(new ProtocolGame);
     m_protocolGame->login(account, password, worldHost, (uint16)worldPort, characterName);
 }
@@ -140,23 +138,15 @@ void Game::processInventoryChange(int slot, const ItemPtr& item)
 
 void Game::processCreatureMove(const CreaturePtr& creature, const Position& oldPos, const Position& newPos)
 {
-    /*
     // walk
     if(oldPos.isInRange(newPos, 1, 1, 0)) {
-        Otc::Direction direction = oldPos.getDirectionFromPosition(newPos);
-        creature->setDirection(direction);
+        creature->walk(oldPos, newPos);
     // teleport
     } else {
-        // stop animation on teleport
-        if(creature->isWalking())
+        // stop walking on teleport
+        if(creature->isWalking() || creature->isPreWalking())
             creature->cancelWalk();
     }
-    */
-    if(!m_walkFeedback && creature == m_localPlayer) {
-        updateWalkPing();
-        m_walkFeedback = true;
-    }
-    creature->walk(newPos);
 }
 
 void Game::processAttackCancel()
@@ -167,28 +157,26 @@ void Game::processAttackCancel()
 
 void Game::processWalkCancel(Otc::Direction direction)
 {
-    if(!m_walkFeedback) {
-        updateWalkPing();
-        m_walkFeedback = true;
-    }
     m_localPlayer->cancelWalk(direction, true);
 }
 
 void Game::walk(Otc::Direction direction)
 {
-    if(m_localPlayer->isFollowing()) {
+    if(!isOnline() || !m_localPlayer->isKnown() || isDead() || !checkBotProtection())
+        return;
+
+    if(m_localPlayer->isFollowing())
         cancelFollow();
-        return;
-    }
 
-    if(!isOnline() || isDead() || !checkBotProtection() || !m_localPlayer->canWalk(direction))
+    if(!m_localPlayer->canWalk(direction))
         return;
 
-    m_localPlayer->clientWalk(direction);
+    m_localPlayer->preWalk(direction);
+    forceWalk(direction);
+}
 
-    // ping calculation restarts when the local players try to walk one tile
-    m_walkPingTimer.restart();
-
+void Game::forceWalk(Otc::Direction direction)
+{
     switch(direction) {
     case Otc::North:
         m_protocolGame->sendWalkNorth();
@@ -215,8 +203,6 @@ void Game::walk(Otc::Direction direction)
         m_protocolGame->sendWalkNorthWest();
         break;
     }
-
-    m_walkFeedback = false;
 }
 
 void Game::turn(Otc::Direction direction)
@@ -334,6 +320,7 @@ void Game::rotate(const ThingPtr& thing)
         m_protocolGame->sendRotateItem(thing->getPos(), thing->getId(), stackpos);
 }
 
+//TODO: move this to Thing class
 int Game::getThingStackpos(const ThingPtr& thing)
 {
     // thing is at map
@@ -474,10 +461,4 @@ bool Game::checkBotProtection()
     }
 #endif
     return true;
-}
-
-void Game::updateWalkPing()
-{
-    m_walkPing = m_walkPingTimer.ticksElapsed();
-    g_lua.callGlobalField("Game", "onWalkPingUpdate", m_walkPing);
 }

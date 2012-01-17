@@ -419,13 +419,11 @@ void ProtocolGame::parseCreatureMove(InputMessage& msg)
         return;
     }
 
-    g_game.processCreatureMove(creature, oldPos, newPos);
-
     // update map tiles
     g_map.removeThing(thing);
     g_map.addThing(thing, newPos);
 
-    //g_game.processCreatureMove(creature, oldPos, newPos);
+    g_game.processCreatureMove(creature, oldPos, newPos);
 }
 
 void ProtocolGame::parseOpenContainer(InputMessage& msg)
@@ -1126,7 +1124,7 @@ ThingPtr ProtocolGame::internalGetThing(InputMessage& msg)
         int skull = msg.getU8();
         int shield = msg.getU8();
 
-        int emblem = 0;
+        int emblem = -1;
         if(thingId == 0x0061) // emblem is sent only in packet type 0x61
             emblem = msg.getU8();
 
@@ -1140,9 +1138,14 @@ ThingPtr ProtocolGame::internalGetThing(InputMessage& msg)
             creature->setSpeed(speed);
             creature->setSkull(skull);
             creature->setShield(shield);
-            creature->setEmblem(emblem);
+            if(emblem != -1)
+                creature->setEmblem(emblem);
             creature->setPassable(passable);
             creature->cancelWalk(direction);
+
+            if(creature == m_localPlayer) {
+                m_localPlayer->setKnown(true);
+            }
         }
 
         thing = creature;

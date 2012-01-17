@@ -45,6 +45,15 @@ AlignTopCenter = 20
 AlignBottomCenter = 24
 AlignCenter = 48
 
+North = 0
+East = 1
+South = 2
+West = 3
+NorthEast = 4
+SouthEast = 5
+SouthWest = 6
+NorthWest = 7
+
 
 KeyUnknown = 0
 KeyEscape = 1
@@ -154,6 +163,16 @@ KeyF9 = 137
 KeyF10 = 138
 KeyF11 = 139
 KeyF12 = 140
+KeyNumpad0 = 141
+KeyNumpad1 = 142
+KeyNumpad2 = 143
+KeyNumpad3 = 144
+KeyNumpad4 = 145
+KeyNumpad5 = 146
+KeyNumpad6 = 147
+KeyNumpad7 = 148
+KeyNumpad8 = 149
+KeyNumpad9 = 150
 
 KeyCodeDescs = {
   [KeyUnknown] = 'Unknown',
@@ -263,5 +282,15 @@ KeyCodeDescs = {
   [KeyF9] = 'F9',
   [KeyF10] = 'F10',
   [KeyF11] = 'F11',
-  [KeyF12] = 'F12'
+  [KeyF12] = 'F12',
+  [KeyNumpad0] = 'Numpad0',
+  [KeyNumpad1] = 'Numpad1',
+  [KeyNumpad2] = 'Numpad2',
+  [KeyNumpad3] = 'Numpad3',
+  [KeyNumpad4] = 'Numpad4',
+  [KeyNumpad5] = 'Numpad5',
+  [KeyNumpad6] = 'Numpad6',
+  [KeyNumpad7] = 'Numpad7',
+  [KeyNumpad8] = 'Numpad8',
+  [KeyNumpad9] = 'Numpad9'
 }

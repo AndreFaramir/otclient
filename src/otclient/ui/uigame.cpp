@@ -25,9 +25,9 @@
 #include <framework/ui/uilineedit.h>
 #include <framework/platform/platformwindow.h>
 
-bool UIGame::onKeyPress(uchar keyCode, std::string keyText, int keyboardModifiers)
+bool UIGame::onKeyPress(uchar keyCode, int keyboardModifiers, bool wouldFilter)
 {
-    if(UIWidget::onKeyPress(keyCode, keyText, keyboardModifiers))
+    if(UIWidget::onKeyPress(keyCode, keyboardModifiers, wouldFilter))
         return true;
 
     UILineEditPtr chatLineEdit = std::dynamic_pointer_cast<UILineEdit>(getParent()->recursiveGetChildById("consoleLineEdit"));
@@ -57,6 +57,8 @@ bool UIGame::onKeyPress(uchar keyCode, std::string keyText, int keyboardModifier
         } else if(keyCode == Fw::KeyNumpad7) {
             g_game.walk(Otc::NorthWest);
             return true;
+        } else if(wouldFilter) {
+            return false;
         } else if(keyCode == Fw::KeyReturn || keyCode == Fw::KeyEnter) {
             g_game.talk(chatLineEdit->getText());
             chatLineEdit->clearText();
@@ -106,10 +108,15 @@ bool UIGame::onKeyPress(uchar keyCode, std::string keyText, int keyboardModifier
         }
     }
 
-    if(!keyText.empty() && (keyboardModifiers == Fw::KeyboardNoModifier || keyboardModifiers == Fw::KeyboardShiftModifier)) {
-        chatLineEdit->appendText(keyText);
-        return true;
-    }
-
     return false;
+}
+
+bool UIGame::onKeyText(const std::string& keyText)
+{
+    if(UIWidget::onKeyText(keyText))
+        return true;
+
+    UILineEditPtr chatLineEdit = std::dynamic_pointer_cast<UILineEdit>(getParent()->recursiveGetChildById("consoleLineEdit"));
+    chatLineEdit->appendText(keyText);
+    return true;
 }
