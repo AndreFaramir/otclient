@@ -25,6 +25,7 @@
 #include <framework/application.h>
 #include <framework/thirdparty/apngloader.h>
 #include <framework/core/resourcemanager.h>
+#include <framework/util/utf8.h>
 
 WIN32Window::WIN32Window()
 {
@@ -32,6 +33,7 @@ WIN32Window::WIN32Window()
     m_instance = 0;
     m_deviceContext = 0;
     m_glContext = 0;
+    m_cursor = 0;
     m_maximized = false;
     m_minimumSize = Size(16,16);
     m_size = m_minimumSize;
@@ -225,6 +227,11 @@ void WIN32Window::terminate()
         m_deviceContext = NULL;
     }
 
+    if(m_cursor) {
+        DestroyCursor(m_cursor);
+        m_cursor = NULL;
+    }
+
     if(m_window) {
         if(!DestroyWindow(m_window))
             logError("ERROR: Destroy window failed.");
@@ -247,6 +254,7 @@ struct WindowProcProxy {
 
 void WIN32Window::internalRegisterWindowClass()
 {
+    m_defaultCursor = LoadCursor(NULL, IDC_ARROW);
     WNDCLASSA wc;
     wc.style            = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     wc.lpfnWndProc      = (WNDPROC)WindowProcProxy::call;
@@ -254,7 +262,7 @@ void WIN32Window::internalRegisterWindowClass()
     wc.cbWndExtra       = 0;
     wc.hInstance        = m_instance;
     wc.hIcon            = LoadIcon(NULL, IDI_WINLOGO);
-    wc.hCursor          = LoadCursor(NULL, IDC_ARROW);
+    wc.hCursor          = m_defaultCursor;
     wc.hbrBackground    = NULL;
     wc.lpszMenuName     = NULL;
     wc.lpszClassName    = g_app->getAppName().c_str();
@@ -332,14 +340,15 @@ void WIN32Window::internalCreateGLContext()
 
 bool WIN32Window::isExtensionSupported(const char *ext)
 {
-    typedef const char* _wglGetExtensionsStringARB(HDC hdc);
-    _wglGetExtensionsStringARB *wglGetExtensionsStringARB = (_wglGetExtensionsStringARB*)getExtensionProcAddress("wglGetExtensionsStringARB");
+    typedef const char* (WINAPI * wglGetExtensionsStringProc)();
+    wglGetExtensionsStringProc wglGetExtensionsString = (wglGetExtensionsStringProc)getExtensionProcAddress("wglGetExtensionsStringEXT");
+    if(!wglGetExtensionsString)
+        return false;
 
-    if(wglGetExtensionsStringARB) {
-        const char *exts = wglGetExtensionsStringARB(m_deviceContext);
-        if(strstr(exts, ext))
-            return true;
-    }
+    const char *exts = wglGetExtensionsString();
+    if(exts && strstr(exts, ext))
+        return true;
+
     return false;
 }
 
@@ -399,18 +408,15 @@ void WIN32Window::poll()
 
 LRESULT WIN32Window::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-
-    /*
-    m_inputEvent.keyboardModifiers = 0;
-    if(HIWORD(GetKeyState(VK_CONTROL)))
-        m_inputEvent.keyboardModifiers |= Fw::KeyboardCtrlModifier;
-    if(HIWORD(GetKeyState(VK_MENU)))
-        m_inputEvent.keyboardModifiers |= Fw::KeyboardAltModifier;
-    if(HIWORD(GetKeyState(VK_SHIFT)))
-        m_inputEvent.keyboardModifiers |= Fw::KeyboardShiftModifier;
-    */
     switch(uMsg)
     {
+        case WM_SETCURSOR: {
+            if(m_cursor)
+                SetCursor(m_cursor);
+            else
+                SetCursor(m_defaultCursor);
+            break;
+        }
         case WM_ACTIVATE: {
             m_focused = !(wParam == WA_INACTIVE);
             break;
@@ -419,7 +425,8 @@ LRESULT WIN32Window::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             if(wParam >= 32 && wParam <= 255) {
                 m_inputEvent.reset(Fw::KeyTextInputEvent);
                 m_inputEvent.keyText = wParam;
-                m_onInputEvent(m_inputEvent);
+                if(m_onInputEvent)
+                    m_onInputEvent(m_inputEvent);
             }
             break;
         }
@@ -438,37 +445,43 @@ LRESULT WIN32Window::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_LBUTTONDOWN: {
             m_inputEvent.reset(Fw::MousePressInputEvent);
             m_inputEvent.mouseButton = Fw::MouseLeftButton;
-            m_onInputEvent(m_inputEvent);
+            if(m_onInputEvent)
+                m_onInputEvent(m_inputEvent);
             break;
         }
         case WM_LBUTTONUP: {
             m_inputEvent.reset(Fw::MouseReleaseInputEvent);
             m_inputEvent.mouseButton = Fw::MouseLeftButton;
-            m_onInputEvent(m_inputEvent);
+            if(m_onInputEvent)
+                m_onInputEvent(m_inputEvent);
             break;
         }
         case WM_MBUTTONDOWN: {
             m_inputEvent.reset(Fw::MousePressInputEvent);
             m_inputEvent.mouseButton = Fw::MouseMidButton;
-            m_onInputEvent(m_inputEvent);
+            if(m_onInputEvent)
+                m_onInputEvent(m_inputEvent);
             break;
         }
         case WM_MBUTTONUP: {
             m_inputEvent.reset(Fw::MouseReleaseInputEvent);
             m_inputEvent.mouseButton = Fw::MouseMidButton;
-            m_onInputEvent(m_inputEvent);
+            if(m_onInputEvent)
+                m_onInputEvent(m_inputEvent);
             break;
         }
         case WM_RBUTTONDOWN: {
             m_inputEvent.reset(Fw::MousePressInputEvent);
             m_inputEvent.mouseButton = Fw::MouseRightButton;
-            m_onInputEvent(m_inputEvent);
+            if(m_onInputEvent)
+                m_onInputEvent(m_inputEvent);
             break;
         }
         case WM_RBUTTONUP: {
             m_inputEvent.reset(Fw::MouseReleaseInputEvent);
             m_inputEvent.mouseButton = Fw::MouseRightButton;
-            m_onInputEvent(m_inputEvent);
+            if(m_onInputEvent)
+                m_onInputEvent(m_inputEvent);
             break;
         }
         case WM_MOUSEMOVE: {
@@ -476,14 +489,15 @@ LRESULT WIN32Window::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             Point newMousePos(LOWORD(lParam), HIWORD(lParam));
             m_inputEvent.mouseMoved = newMousePos - m_inputEvent.mousePos;
             m_inputEvent.mousePos = newMousePos;
-            m_onInputEvent(m_inputEvent);
+            if(m_onInputEvent)
+                m_onInputEvent(m_inputEvent);
             break;
         }
         case WM_MOUSEWHEEL: {
-            m_inputEvent.reset(Fw::MouseWheelInputEvent);
             m_inputEvent.mouseButton = Fw::MouseMidButton;
             m_inputEvent.wheelDirection = HIWORD(wParam) > 0 ? Fw::MouseWheelUp : Fw::MouseWheelDown;
-            m_onInputEvent(m_inputEvent);
+            if(m_onInputEvent)
+                m_onInputEvent(m_inputEvent);
             break;
         }
         case WM_MOVE: {
@@ -522,16 +536,24 @@ void WIN32Window::swapBuffers()
 
 void WIN32Window::restoreMouseCursor()
 {
-    //TODO
+    logTraceDebug();
+    if(m_cursor) {
+        DestroyCursor(m_cursor);
+        m_cursor = NULL;
+        SetCursor(m_defaultCursor);
+        ShowCursor(true);
+    }
 }
 
 void WIN32Window::showMouse()
 {
+    logTraceDebug();
     ShowCursor(true);
 }
 
 void WIN32Window::hideMouse()
 {
+    logTraceDebug();
     ShowCursor(false);
 }
 
@@ -540,9 +562,60 @@ void WIN32Window::displayFatalError(const std::string& message)
     MessageBoxA(m_window, message.c_str(), "FATAL ERROR", MB_OK | MB_ICONERROR);
 }
 
-void WIN32Window::setMouseCursor(const std::string& file)
-{
+#define LSB_BIT_SET(p, n) (p[(n)/8] |= (1 <<((n)%8)))
+#define HSB_BIT_SET(p, n) (p[(n)/8] |= (128 >>((n)%8)))
 
+void WIN32Window::setMouseCursor(const std::string& file, const Point& hotSpot)
+{
+    logTraceDebug();
+    std::stringstream fin;
+    g_resources.loadFile(file, fin);
+
+    apng_data apng;
+    if(load_apng(fin, &apng) != 0) {
+        logTraceError("unable to load png file ", file);
+        return;
+    }
+
+    if(apng.bpp != 4) {
+        logError("the cursor png must have 4 channels");
+        free_apng(&apng);
+        return;
+    }
+
+    if(apng.width != 32|| apng.height != 32) {
+        logError("the cursor png must have 32x32 dimension");
+        free_apng(&apng);
+        return;
+    }
+
+    if(m_cursor != NULL)
+        DestroyCursor(m_cursor);
+
+    int width = apng.width;
+    int height = apng.height;
+    int numbits = width * height;
+    int numbytes = (width * height)/8;
+
+    std::vector<uchar> andMask(numbytes, 0);
+    std::vector<uchar> xorMask(numbytes, 0);
+
+    for(int i=0;i<numbits;++i) {
+        uchar r = apng.pdata[i*4+0];
+        uchar g = apng.pdata[i*4+1];
+        uchar b = apng.pdata[i*4+2];
+        uchar a = apng.pdata[i*4+3];
+        Color color(r,g,b,a);
+        if(color == Fw::white) { //white
+            HSB_BIT_SET(xorMask, i);
+        } else if(color == Fw::alpha) { //alpha
+            HSB_BIT_SET(andMask, i);
+        } //otherwise black
+    }
+    free_apng(&apng);
+
+    m_cursor = CreateCursor(m_instance, hotSpot.x, hotSpot.y, width, height, &andMask[0], &xorMask[0]);
+    SetCursor(m_cursor);
 }
 
 void WIN32Window::setTitle(const std::string& title)
@@ -581,14 +654,15 @@ void WIN32Window::setFullscreen(bool fullscreen)
 
 void WIN32Window::setVerticalSync(bool enable)
 {
-    typedef int (*glSwapIntervalProc)(int);
-    glSwapIntervalProc glSwapInterval = NULL;
+    if(!isExtensionSupported("WGL_EXT_swap_control"))
+        return;
 
-    if(isExtensionSupported("WGL_EXT_swap_control"))
-        glSwapInterval = (glSwapIntervalProc)getExtensionProcAddress("wglSwapIntervalEXT");
+    typedef BOOL (WINAPI * wglSwapIntervalProc)(int);
+    wglSwapIntervalProc wglSwapInterval = (wglSwapIntervalProc)getExtensionProcAddress("wglSwapIntervalEXT");
+    if(!wglSwapInterval)
+        return;
 
-    if(glSwapInterval)
-        glSwapInterval(enable ? 1 : 0);
+    wglSwapInterval(enable ? 1 : 0);
 }
 
 void WIN32Window::setIcon(const std::string& pngIcon)
@@ -669,7 +743,7 @@ std::string WIN32Window::getClipboardText()
     if(hglb) {
         LPTSTR lptstr = (LPTSTR)GlobalLock(hglb);
         if(lptstr) {
-            text = lptstr;
+            text = Fw::utf8StringToLatin1((uchar*)lptstr);
             GlobalUnlock(hglb);
         }
     }

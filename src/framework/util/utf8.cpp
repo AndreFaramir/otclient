@@ -20,32 +20,39 @@
  * THE SOFTWARE.
  */
 
-#include "otclient.h"
-#include <framework/core/modulemanager.h>
-#include "core/game.h"
-#include <framework/core/resourcemanager.h>
+#include "utf8.h"
 
-OTClient::OTClient(const std::string& appName) : Application(appName)
+#include <string>
+#include <cstring>
+
+char Fw::utf8CharToLatin1(uchar *utf8, int *read)
 {
-
+    char c = '?';
+    uchar opt1 = utf8[0];
+    if(opt1 == 0xc3) {
+        *read = 2;
+        uchar opt2 = utf8[1];
+        c = 64 + opt2;
+    } else if(opt1 == 0xc2) {
+        *read = 2;
+        uchar opt2 = utf8[1];
+        if(opt2 > 0xa1 && opt2 < 0xbb)
+            c = opt2;
+    } else if(opt1 < 0xc2) {
+        *read = 1;
+        c = opt1;
+    }
+    return c;
 }
 
-void OTClient::init(const std::vector<std::string>& args)
-{
-    logInfo(Otc::AppName, " ", Otc::AppVersion);
-    Application::init(args, Fw::AppEnableAll);
-
-    g_modules.discoverModules();
-    g_modules.autoLoadModules(100);
-    g_modules.ensureModuleLoaded("client");
-    g_modules.autoLoadModules(1000);
-
-    // load otclientrc.lua
-    if(g_resources.fileExists("/otclientrc.lua")) {
-        try {
-            g_lua.runScript("/otclientrc.lua");
-        } catch(LuaException& e) {
-            logError("failed to load otclientrc.lua: ", e.what());
-        }
+std::string Fw::utf8StringToLatin1(uchar *utf8) {
+    std::string out;
+    int len = strlen((char*)utf8);
+    for(int i=0; i<len;) {
+        int read;
+        uchar *utf8char = &utf8[i];
+        out += Fw::utf8CharToLatin1(utf8char, &read);
+        i += read;
     }
+    return out;
 }

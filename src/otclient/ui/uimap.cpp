@@ -27,6 +27,11 @@
 #include <framework/graphics/graphics.h>
 #include <otclient/core/localplayer.h>
 
+UIMap::UIMap()
+{
+    m_dragable = true;
+}
+
 void UIMap::draw()
 {
     drawSelf();
@@ -38,10 +43,10 @@ void UIMap::draw()
     drawChildren();
 }
 
-TilePtr UIMap::getTile(const Point& mousePos)
+Position UIMap::getPosition(const Point& mousePos)
 {
     if(!m_mapRect.contains(mousePos))
-        return nullptr;
+        return Position();
 
     // Get tile position
     Point relativeStretchMousePos = mousePos - m_mapRect.topLeft();
@@ -57,6 +62,15 @@ TilePtr UIMap::getTile(const Point& mousePos)
 
     PointF tilePosF = relativeMousePos / Map::NUM_TILE_PIXELS;
     Position tilePos = Position(1 + (int)tilePosF.x - g_map.getCentralOffset().x, 1 + (int)tilePosF.y - g_map.getCentralOffset().y, 0) + g_map.getCentralPosition();
+
+    return tilePos;
+}
+
+TilePtr UIMap::getTile(const Point& mousePos)
+{
+    Position tilePos = getPosition(mousePos);
+    if(!tilePos.isValid())
+        return nullptr;
 
     // Get tile
     TilePtr tile = nullptr;

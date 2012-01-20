@@ -43,6 +43,14 @@ void Application::registerLuaFunctions()
     g_lua.bindGlobalFunction("colortostring", [](const Color& v) { return Fw::tostring(v); });
     g_lua.bindGlobalFunction("sizetostring", [](const Size& v) { return Fw::tostring(v); });
 
+    // Event
+    g_lua.registerClass<Event>();
+    g_lua.bindClassMemberFunction<Event>("isCanceled", &Event::isCanceled);
+    g_lua.bindClassMemberFunction<Event>("isExecuted", &Event::isExecuted);
+
+    // ScheduledEvent
+    g_lua.registerClass<ScheduledEvent, Event>();
+
     // UIWidget
     g_lua.registerClass<UIWidget>();
     g_lua.bindClassStaticFunction<UIWidget>("create", []{ return UIWidgetPtr(new UIWidget); });
@@ -383,7 +391,7 @@ void Application::registerLuaFunctions()
     g_lua.bindClassStaticFunction("g_window", "showMouse", std::bind(&PlatformWindow::showMouse, &g_window));
     g_lua.bindClassStaticFunction("g_window", "hideMouse", std::bind(&PlatformWindow::hideMouse, &g_window));
     g_lua.bindClassStaticFunction("g_window", "setTitle", std::bind(&PlatformWindow::setTitle, &g_window, _1));
-    g_lua.bindClassStaticFunction("g_window", "setMouseCursor", std::bind(&PlatformWindow::setMouseCursor, &g_window, _1));
+    g_lua.bindClassStaticFunction("g_window", "setMouseCursor", std::bind(&PlatformWindow::setMouseCursor, &g_window, _1, _2));
     g_lua.bindClassStaticFunction("g_window", "setMinimumSize", std::bind(&PlatformWindow::setMinimumSize, &g_window, _1));
     g_lua.bindClassStaticFunction("g_window", "setFullscreen", std::bind(&PlatformWindow::setFullscreen, &g_window, _1));
     g_lua.bindClassStaticFunction("g_window", "setVerticalSync", std::bind(&PlatformWindow::setVerticalSync, &g_window, _1));

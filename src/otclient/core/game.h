@@ -65,6 +65,7 @@ public:
     void use(const ThingPtr& thing);
     void useWith(const ThingPtr& fromThing, const ThingPtr& toThing);
     void useInventoryItem(int itemId, const ThingPtr& toThing);
+    void move(const ThingPtr &thing, const Position& toPos, int count);
 
     // attack/follow related
     void attack(const CreaturePtr& creature);
@@ -102,7 +103,7 @@ public:
 
     bool checkBotProtection();
 
-    bool isOnline() { return m_online; }
+    bool isOnline() { return !!m_localPlayer; }
     bool isDead() { return m_dead; }
 
     void setSelectedThing(const ThingPtr& thing) { m_selectedThing = thing; }
@@ -118,7 +119,6 @@ public:
 private:
     LocalPlayerPtr m_localPlayer;
     ProtocolGamePtr m_protocolGame;
-    bool m_online;
     bool m_dead;
     int m_serverBeat;
     ThingPtr m_selectedThing;

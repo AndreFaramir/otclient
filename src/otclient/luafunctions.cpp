@@ -169,6 +169,7 @@ void OTClient::registerLuaFunctions()
     g_lua.bindClassMemberFunction<Tile>("getTopLookThing", &Tile::getTopLookThing);
     g_lua.bindClassMemberFunction<Tile>("getTopUseThing", &Tile::getTopUseThing);
     g_lua.bindClassMemberFunction<Tile>("getTopCreature", &Tile::getTopCreature);
+    g_lua.bindClassMemberFunction<Tile>("getTopMoveThing", &Tile::getTopMoveThing);
     g_lua.bindClassMemberFunction<Tile>("getTopMultiUseThing", &Tile::getTopMultiUseThing);
     g_lua.bindClassMemberFunction<Tile>("getPos", &Tile::getPos);
     g_lua.bindClassMemberFunction<Tile>("getDrawElevation", &Tile::getDrawElevation);
@@ -197,6 +198,7 @@ void OTClient::registerLuaFunctions()
     g_lua.bindClassStaticFunction<Game>("open", std::bind(&Game::open, &g_game, _1, _2));
     g_lua.bindClassStaticFunction<Game>("use", std::bind(&Game::use, &g_game, _1));
     g_lua.bindClassStaticFunction<Game>("useWith", std::bind(&Game::useWith, &g_game, _1, _2));
+    g_lua.bindClassStaticFunction<Game>("move", std::bind(&Game::move, &g_game, _1, _2, _3));
     g_lua.bindClassStaticFunction<Game>("useInventoryItem", std::bind(&Game::useInventoryItem, &g_game, _1, _2));
     g_lua.bindClassStaticFunction<Game>("walk", std::bind(&Game::walk, &g_game, _1));
     g_lua.bindClassStaticFunction<Game>("forceWalk", std::bind(&Game::forceWalk, &g_game, _1));
@@ -237,6 +239,7 @@ void OTClient::registerLuaFunctions()
     g_lua.registerClass<UIMap, UIWidget>();
     g_lua.bindClassStaticFunction<UIMap>("create", []{ return UIMapPtr(new UIMap); } );
     g_lua.bindClassMemberFunction<UIMap>("getTile", &UIMap::getTile);
+    g_lua.bindClassMemberFunction<UIMap>("getPosition", &UIMap::getPosition);
 
     g_lua.registerClass<UIGame, UIWidget>();
     g_lua.bindClassStaticFunction<UIGame>("create", []{ return UIGamePtr(new UIGame); } );
