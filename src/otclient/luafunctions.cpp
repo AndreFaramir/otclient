@@ -133,6 +133,7 @@ void OTClient::registerLuaFunctions()
 
     g_lua.registerClass<Item, Thing>();
     g_lua.bindClassStaticFunction<Item>("create", &Item::create);
+    g_lua.bindClassMemberFunction<Item>("getData", &Item::getData);
 
     g_lua.registerClass<Effect, Thing>();
     g_lua.registerClass<Missile, Thing>();
@@ -239,7 +240,6 @@ void OTClient::registerLuaFunctions()
     g_lua.registerClass<UIMap, UIWidget>();
     g_lua.bindClassStaticFunction<UIMap>("create", []{ return UIMapPtr(new UIMap); } );
     g_lua.bindClassMemberFunction<UIMap>("getTile", &UIMap::getTile);
-    g_lua.bindClassMemberFunction<UIMap>("getPosition", &UIMap::getPosition);
 
     g_lua.registerClass<UIGame, UIWidget>();
     g_lua.bindClassStaticFunction<UIGame>("create", []{ return UIGamePtr(new UIGame); } );

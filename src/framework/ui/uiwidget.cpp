@@ -61,8 +61,8 @@ void UIWidget::drawSelf()
         drawBackground(m_rect);
     }
 
-    drawBorder(m_rect);
     drawImage(m_rect);
+    drawBorder(m_rect);
     drawIcon(m_rect);
     drawText(m_rect);
 }
@@ -638,6 +638,9 @@ void UIWidget::setVisible(bool visible)
             if(UIWidgetPtr parent = getParent())
                 parent->focusPreviousChild(Fw::ActiveFocusReason);
         }
+
+        // visibility can change can change parent layout
+        updateParentLayout();
 
         updateState(Fw::ActiveState);
         updateState(Fw::HoverState);
